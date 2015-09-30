@@ -17,7 +17,7 @@
 # License along with JayDeBeApi.  If not, see
 # <http://www.gnu.org/licenses/>.
 
-__version_info__ = (0, 2, 0)
+__version_info__ = (0, 2, 1)
 __version__ = ".".join(str(i) for i in __version_info__)
 
 import datetime
@@ -487,6 +487,26 @@ class Cursor(object):
             self.rowcount = self._prep.getUpdateCount()
         # self._prep.getWarnings() ???
 
+    def executequery(self, operation, parameters=None):
+        if self._connection._closed:
+            raise Error()
+        if not parameters:
+            parameters = ()
+        self._close_last()
+        self._prep = self._connection.jconn.prepareStatement(operation)
+        self._set_stmt_parms(self._prep, parameters)
+        try:
+            is_rs = self._prep.executeQuery()
+        except:
+            _handle_sql_exception()
+        if is_rs:
+            self._rs = self._prep.getResultSet()
+            self._meta = self._rs.getMetaData()
+            self.rowcount = -1
+        else:
+            self.rowcount = self._prep.getUpdateCount()
+        # self._prep.getWarnings() ???
+
     def executemany(self, operation, seq_of_parameters):
         self._close_last()
         self._prep = self._connection.jconn.prepareStatement(operation)
@@ -634,4 +654,5 @@ _DEFAULT_CONVERTERS = {
     'INTEGER': _to_int,
     'SMALLINT': _to_int,
     'BOOLEAN': _java_to_py('booleanValue'),
+     'BIGINT': _java_to_py('longValue'),
 }
